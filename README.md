@@ -10,5 +10,7 @@ Duong Hoang
 
 cd /frontend; npm run start
 cd /backend; npm run dev
+cd : docker-compose up -d //to start 
+    docker-compose down  //to stop
 
-Completed the first Phases: boilerplate for Front and Back end
+Completed the second Phases: Dockerize localhost
