@@ -10,10 +10,13 @@ const api = require('./api');
 
 const app = express();
 
+const itemsRouter = require('../routes/items');
+
 app.use(morgan('dev'));
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
+app.use('/api/items', itemsRouter);
 
 app.get('/', (req, res) => {
   res.json({
