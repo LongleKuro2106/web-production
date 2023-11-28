@@ -17,7 +17,7 @@ const App = () => {
 
   const handleAdd = () => {
     if (input.trim() !== '') {
-      const existingItem = items.find(item => item.name === input);
+      const existingItem = items.find(item => item.name.toLowerCase() === input.toLowerCase());
       if (existingItem) {
         setNotification(`Item "${input}" already exists!`);
         setTimeout(() => setNotification(null), 3000);
