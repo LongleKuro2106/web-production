@@ -80,7 +80,7 @@ const App = () => {
             />
           ))}
         </ul>
-        <p> Total items : {totalItems} </p> 
+        <p id='total-item'> Total items : {totalItems} </p> 
         {notification && <p>{notification}</p>}
       </header>
     </div>

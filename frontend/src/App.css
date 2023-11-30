@@ -1,7 +1,7 @@
 
 * {
   text-align: center;
-  background-color: #282c34;
+  background-color: #B99470;
   align-items: center;
   justify-content: center;
   font-size: calc(10px + 2vmin);
@@ -10,4 +10,53 @@
 
 h1{
   font-size: 30px;
+  color: #8C3333;
 }
+
+#list-container { 
+  border: black 5px solid;
+  width: 450px;
+  margin: auto;
+}
+#list-container ul {
+  border: black 2px solid;
+  list-style: none;
+  padding:0px;
+}
+#list-container ul li {
+  padding: 5px;
+  font-size: 24px;
+  background-color: #A9B388;
+  color: black;
+  overflow: auto;
+  height: fit-content;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+#list-container button {
+  background-color: #F2EE9D;
+  color: black;
+}
+
+#list-container ul li .item-name,
+#list-container ul li .item-quantity,
+#list-container ul li .item-buttons {
+  flex: 1;
+  text-align: center;
+}
+
+#adding-input{
+  background-color: #fff;
+  color: black;
+  width: 20%;
+  height: 35px;
+}
+
+#btn{
+  width: 100px;
+  background-color: #F2EE9D;
+  color: black;
+  height: 40px;
+}
+
