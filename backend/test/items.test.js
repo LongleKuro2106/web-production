@@ -16,6 +16,11 @@ describe('The GET items routes', () => {
         name: 'apple',
         quantity: 2,
       },
+      {
+        id: 3,
+        name: 'orange',
+        quantity: 3,
+      },
     ]);
   });
 
