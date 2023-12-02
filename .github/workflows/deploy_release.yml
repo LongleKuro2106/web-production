@@ -148,7 +148,6 @@ jobs:
         run:
           ssh ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_SERVER }} /bin/bash
           "
-          docker logout;
           docker login ${{ env.REGISTRY }} -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }};
           cd prod_stack;
           docker-compose pull;
