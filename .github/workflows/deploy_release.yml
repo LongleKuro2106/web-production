@@ -1,65 +1,48 @@
 
 # This workflow will deploy a release to the
 name: Deploy Release
-
 # Controls when the workflow will run
 on:
   # Triggers the workflow on push or pull request events but only for the "release" branch
   push:
     branches: ["release"]
-    tags:
-      - "v*"
-
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
-
 env:
   REGISTRY: ghcr.io
   REPOSITORY: ${{ github.repository }}
   FRONTEND_IMAGE_NAME: se-5g00dm04/lowg-frontend
   BACKEND_IMAGE_NAME: se-5g00dm04/lowg-backend
-
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # We will just build the images from the code, all the code should have been tested
   build:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
-
     permissions:
       contents: read
       packages: write
-
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: Fetch code
         uses: actions/checkout@v3
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
-
       - name: Setup Docker Build
         uses: docker/setup-buildx-action@v3
-
       - name: Docker login
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      # Frontend metadata
-      - name: Docker Metadata action for Frontend
-        uses: docker/metadata-action@v5.0.0
-        id: frontend-meta
-        with:
-          images: "${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}"
-          tags: |
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-
+      - name: Set env
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      - name: Test
+        run: |
+          echo $RELEASE_VERSION
+          echo ${{ env.RELEASE_VERSION }}
       # Building and pushing the frontend image to the registry using an action
       - name: Build and push Docker Frontend images
         uses: docker/build-push-action@v5.0.0
@@ -67,20 +50,9 @@ jobs:
           context: ./frontend
           file: ./frontend/DockerfileServerProduction
           push: true
-          tags: ${{ steps.frontend-meta.outputs.tags }}
-          labels: ${{ steps.frontend-meta.outputs.labels }}
-
-      # Backend metadata
-      - name: Docker Metadata action for Backend
-        uses: docker/metadata-action@v5.0.0
-        id: backend-meta
-        with:
-          images: "${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}"
-          tags: |
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-
+          tags: | 
+            "${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ env.RELEASE_VERSION }}"
+            "${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}"
       # Building and pushing the backend image to the registry using an action
       - name: Build and push Docker Backend images
         uses: docker/build-push-action@v5.0.0
@@ -88,23 +60,29 @@ jobs:
           context: ./backend
           file: ./backend/DockerfileServer
           push: true
-          tags: ${{ steps.backend-meta.outputs.tags }}
-          labels: ${{ steps.backend-meta.outputs.labels }}
-
+          tags: | 
+            "${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:${{ env.RELEASE_VERSION }}"
+            "${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}"
   deploy:
     runs-on: ubuntu-latest
     # Build job needs to succeed
     needs: build
-
+    
     permissions:
       contents: read
-      packages: read
-
+      packages: write
+      
     steps:
       # Fetch the code using the checkout action
       - name: Fetch Code
         uses: actions/checkout@v3
-        
+      # Get the release version
+      - name: Set env
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      - name: Test
+        run: |
+          echo $RELEASE_VERSION
+          echo ${{ env.RELEASE_VERSION }}
       # Install OpenVPN to be able to connect to the VM server
       - name: Install OpenVPN
         run: |
@@ -140,8 +118,8 @@ jobs:
         run: |
           mkdir -p prod_stack
           cp docker-compose.prod.yml prod_stack/docker-compose.yml
-          echo "BACKEND_IMAGE=${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:release" >> prod_stack/.env
-          echo "FRONTEND_IMAGE=${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:release" >> prod_stack/.env
+          echo "BACKEND_IMAGE=${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}" >> prod_stack/.env
+          echo "FRONTEND_IMAGE=${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}" >> prod_stack/.env
           rsync -r prod_stack "${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_SERVER }}:./"
       # SSH into VM server and bring up the stack
       - name: Start containers via SSH
@@ -157,4 +135,4 @@ jobs:
         if: always()
         run: |
           sudo chmod 777 vpn.log
-          sudo killall openvpn</div>
+          sudo killall openvpn
