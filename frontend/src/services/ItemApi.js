@@ -1,5 +1,5 @@
 import axios from 'axios';
-const baseUrl = `http://172.16.7.13:4000/api/items`;
+const baseUrl = `${process.env.REACT_APP_BACKEND}/items`;
 
 const getAll = () => {
   return axios
