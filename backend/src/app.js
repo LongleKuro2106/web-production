@@ -10,7 +10,7 @@ const api = require('./api');
 
 const app = express();
 
-const itemsRouter = require('../routes/items');
+const itemsRouter = require('./routes/items');
 
 app.use(morgan('dev'));
 app.use(helmet());
