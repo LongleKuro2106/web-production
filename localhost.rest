@@ -1,0 +1,31 @@
+@hostname = localhost
+@port = 5000
+@endpoint = api/items
+@host = http://{{hostname}}:{{port}}/{{endpoint}} 
+
+###
+GET {{host}}
+
+###
+GET {{host}}/1
+
+###
+POST {{host}}
+Content-Type: application/json
+
+{
+  "name": "grape",
+  "quantity": 4
+}
+
+###
+PUT {{host}}/1
+Content-Type: application/json
+
+{
+  "name": "updated_grape",
+  "quantity": 5
+}
+
+###
+DELETE {{host}}/1
