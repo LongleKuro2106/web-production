@@ -7,15 +7,21 @@
     **Duong Hoang**
 
 ## Server address:
-Frontend:__
-    At local(via npm run start): **http://localhost:3000/**__
-    Dev server: **http://172.16.7.13:8000/**__
-    Production server: **https://23wsp-pro15.course.tamk.cloud**__
+Frontend:
 
-Backend:__
-    At local(via npm run dev): **http://localhost:5000/**__
-    Dev server: **http://172.16.7.13:4000/api/items**__
-    Production server: **https://23wsp-pro15.course.tamk.cloud/api/v1/items**__
+    At local(via npm run start): **http://localhost:3000/**
+
+    Dev server: **http://172.16.7.13:8000/**
+    
+    Production server: **https://23wsp-pro15.course.tamk.cloud**
+
+Backend:
+
+    At local(via npm run dev): **http://localhost:5000/**
+
+    Dev server: **http://172.16.7.13:4000/api/items**
+
+    Production server: **https://23wsp-pro15.course.tamk.cloud/api/v1/items**
 
 ## Project status
 Completed the fifth phase: finishing and fixing the deploy state.
