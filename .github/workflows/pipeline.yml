@@ -51,45 +51,45 @@ jobs:
 
 # Job for building the frontend and backend container images and pushing it to the registry
   build:
+    # The type of runner that the job will run on
     runs-on: ubuntu-latest
-    # Test job needs to succeed
+    ## Test must be secceed
     needs: test
-    # Give the job permission to write packages to the registry
+
     permissions:
       contents: read
       packages: write
+    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Fetch the code using the checkout action
-      - name: Fetch Code
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Fetch code
         uses: actions/checkout@v3
-      # Installing the node modules for the frontend
-      - name: Install Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: "18"
-      # Setting up the Docker build environment
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
-      - name: Set up Docker Buildx
+      - name: Setup Docker Build
         uses: docker/setup-buildx-action@v3
-      # Loggin into the GitHub container registry
-      - name: Docker Login
-        uses: docker/login-action@v3.0.0
+      - name: Docker login
+        uses: docker/login-action@v3
         with:
-          # The GitHub registry
           registry: ${{ env.REGISTRY }}
-          # The person that triggered the build
           username: ${{ github.actor }}
-          # A special GitHub secret token we can use
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set env
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      - name: Test
+        run: |
+          echo $RELEASE_VERSION
+          echo ${{ env.RELEASE_VERSION }}
       # Building and pushing the frontend image to the registry using an action
       - name: Build and push Docker Frontend images
         uses: docker/build-push-action@v5.0.0
         with:
           context: ./frontend
-          file: ./frontend/DockerfileServer
+          file: ./frontend/DockerfileServerProduction
           push: true
-          tags: "${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}"
+          tags: | 
+            "${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ env.RELEASE_VERSION }}"
+            "${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}"
       # Building and pushing the backend image to the registry using an action
       - name: Build and push Docker Backend images
         uses: docker/build-push-action@v5.0.0
@@ -97,17 +97,29 @@ jobs:
           context: ./backend
           file: ./backend/DockerfileServer
           push: true
-          tags: "${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}"
-
-# Job for deploying frontend and backend container images on the server
+          tags: | 
+            "${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:${{ env.RELEASE_VERSION }}"
+            "${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}"
   deploy:
     runs-on: ubuntu-latest
     # Build job needs to succeed
     needs: build
+    
+    permissions:
+      contents: read
+      packages: write
+      
     steps:
       # Fetch the code using the checkout action
       - name: Fetch Code
         uses: actions/checkout@v3
+      # Get the release version
+      - name: Set env
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      - name: Test
+        run: |
+          echo $RELEASE_VERSION
+          echo ${{ env.RELEASE_VERSION }}
       # Install OpenVPN to be able to connect to the VM server
       - name: Install OpenVPN
         run: |
@@ -138,29 +150,21 @@ jobs:
       # Install rsync
       - name: Install rsync
         run: sudo apt --assume-yes --no-install-recommends install rsync
-            # Create stack config and sync to the VM server
+      # Create stack config and sync to the VM server
       - name: Create and sync stack configuration
         run: |
-          mkdir -p dev_stack
-          cp docker-compose.server.yml dev_stack/docker-compose.yml
-          echo "BACKEND_IMAGE=${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}" >> dev_stack/.env
-          echo "FRONTEND_IMAGE=${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}" >> dev_stack/.env
-          rsync -r dev_stack "${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_SERVER }}:./"
-      
-      # SSH into the remote and login into the registry
-      - name: SSH and login into registry
-        run:
-          ssh ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_SERVER }} 
-          "
-          docker login ${{ env.REGISTRY }} -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }};
-          "
-
+          mkdir -p prod_stack
+          cp docker-compose.prod.yml prod_stack/docker-compose.yml
+          echo "BACKEND_IMAGE=${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}" >> prod_stack/.env
+          echo "FRONTEND_IMAGE=${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}" >> prod_stack/.env
+          rsync -r prod_stack "${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_SERVER }}:./"
       # SSH into VM server and bring up the stack
       - name: Start containers via SSH
         run:
-          ssh ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_SERVER }} 
+          ssh ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_SERVER }} /bin/bash
           "
-          cd dev_stack;
+          docker login ${{ env.REGISTRY }} -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }};
+          cd prod_stack;
           docker-compose pull;
           docker-compose up -d;
           "
@@ -169,9 +173,3 @@ jobs:
         run: |
           sudo chmod 777 vpn.log
           sudo killall openvpn
-      - name: Upload VPN logs
-        uses: actions/upload-artifact@v3
-        if: always()
-        with:
-          name: VPN logs
-          path: vpn.log
